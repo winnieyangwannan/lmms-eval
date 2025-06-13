@@ -1,0 +1,113 @@
+import os
+import concurrent.futures
+import subprocess
+import re
+from os.path import join
+import argparse
+
+model_path = "meta-llama/Llama-3.1-8B"
+
+
+
+def run_subprocess_slurm(command):
+    # Execute the sbatch command
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    # Print the output and error, if any
+    print("command:", command)
+    print("stdout:", result.stdout)
+    print("stderr:", result.stderr)
+
+    # Get the job ID for linking dependencies
+    match = re.search(r"Submitted batch job (\d+)", result.stdout)
+    if match:
+        job_id = match.group(1)
+    else:
+        job_id = None
+
+    return job_id
+
+
+gpus_per_node = 1
+
+current_directory = os.getcwd()
+print("current_directory:", current_directory)
+# return_type = "prompt"
+eval_task_name = "mmmu_val"
+eval_task_name = "mme"
+
+task_name = "entity-visual"
+model_name_ogs = ["Qwen2.5-VL-7B-Instruct"]
+# steer_types = ["positive-negative-addition-opposite"]
+# steer_types = ["positive-negative-addition-same"]
+
+entity_types = ["song"]
+# entity_types = ["all"]
+# entity_types = ["player", "city", "movie", "song", "all"]
+# steer_poses = ["last", "entity"]  # "entity"
+known_unknown_split = "3"
+
+
+
+# Run the SLURM commands in parallel
+with concurrent.futures.ThreadPoolExecutor() as executor:
+
+        futures = []
+        for model_name_og in model_name_ogs:
+                for entity_type in entity_types:
+
+                    model_path = f"{task_name}_{model_name_og}_sft_lfw"
+                    huggingface_path= "winnieyangwannan/" + model_path
+                    job_name  = f"eval_mmmu_sft_{model_path}"
+                    save_path= f"LOGS/{task_name}/{model_name_og}/sft/{eval_task_name}/"
+
+                    slurm_cmd = f'''sbatch --account=genai_interns --qos=lowest \
+                        --job-name={job_name} --nodes=1 --gpus-per-node={gpus_per_node} \
+                        --time=24:00:00 --output={save_path}/eval.log \
+                        --wrap="\
+                            accelerate launch --num_processes=8 --main_process_port=12346 -m lmms_eval \
+                            --model qwen2_5_vl \
+                            --model_args=pretrained={huggingface_path},max_pixels=12845056,attn_implementation=flash_attention_2,interleave_visuals=True \
+                            --tasks {eval_task_name} ; \
+
+                    "'''
+                    
+                    job_id = run_subprocess_slurm(slurm_cmd)
+                    print("job_id:", job_id)
+
+# os.chdir(current_directory + os.sep + "src" + os.sep + "eval") 
+# os.chdir(current_directory + os.sep + "SUBMODULES/GENERAL_CAPABILITY") 
+# model_name = "meta-llama/Llama-3.1-8B"  # winnieyangwannan/refusal_Llama-3.1-8B-Instruct_mlp_positive-negative-addition-opposite_last_layer_18_2_49
+# model_name = "Qwen2.5-VL-7B"
+# if  "Qwen2.5-VL-3B" in model_name:
+#     layers = np.arange(0, 35, 2)
+#     layers = [15]
+# elif  "Qwen2.5-VL-7B" in model_name:
+#     layers = np.arange(0, 27, 2)
+# elif "Llama-3.2-11B-Vision-Instruct" in model_name:
+#     layers = np.arange(0, 39+2, 2)
+# task_name = "mmmu" # "mmlu"
+
+# for layer in layers:
+#     model_path= f"winnieyangwannan/entity-visual_Qwen2.5-VL-7B-Instruct_mlp-down_negative-addition_last_layer_{layer}_1_49" # #"Qwen/Qwen2.5-VL-7B-Instruct"
+#     model_name = os.path.basename(model_path)  # Extract the model name from the path
+
+#     job_name  = f"generate_{task_name}_{model_name}"
+#     slurm_cmd = f'''sbatch --account=genai_interns --qos=lowest \
+#         --job-name={job_name} --nodes=1 --gpus-per-node={gpus_per_node} \
+#         --time=24:00:00 --output=LOGS/{job_name}.log \
+#         --wrap="\
+#             accelerate launch --num_processes=8 --main_process_port=12346 -m lmms_eval \
+#             --model qwen2_5_vl \
+#             --model_args=pretrained={model_path},max_pixels=12845056,attn_implementation=flash_attention_2,interleave_visuals=True \
+#             --tasks mmmu_val \
+#             --batch_size 1 \
+#             --log_samples \
+#             --log_samples_suffix reproduce \
+#             --output_path /home/winnieyangwn/Output/GENERAL/ ; \
+#     "'''
+    
+#     job_id = run_subprocess_slurm(slurm_cmd)
+#     print("job_id:", job_id)
+
+
