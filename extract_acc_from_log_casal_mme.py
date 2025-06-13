@@ -1,33 +1,59 @@
-import json
 import re
-import os
-import glob
 import numpy as np
-def extract_results_from_log(log_file, output_file_path=None):
+import os
+def extract_celebrity_result(log_file_path):
+    """
+    Extract the celebrity aggregate result from the evaluation log file.
+    
+    Args:
+        log_file_path (str): Path to the log file
+        
+    Returns:
+        float: The celebrity score, or None if not found
+    """
+    try:
+        with open(log_file_path, 'r') as file:
+            content = file.read()
+            
+        # Pattern to match the celebrity line
+        # Looking for: [INFO] | utils:mme_aggregate_results:124 - celebrity: 69.71
+        pattern = r'utils.*mme_aggregate_results.*celebrity:\s*(\d+\.?\d*)'
+        
+        match = re.search(pattern, content)
+        if match:
+            return float(match.group(1))
+        else:
+            return None
+            
+    except FileNotFoundError:
+        print(f"File not found: {log_file_path}")
+        return None
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return None
+    
 
-    with open(log_file + os.sep +  "eval.log", 'r') as file:
-        content = file.read()
-    
-    # Use regex to find the results dictionary
-    pattern = r"(\{'Overall-Art and Design':.+?'Overall': \{'num': \d+, 'acc': \d+\.\d+\}\})"
-    match = re.search(pattern, content, re.DOTALL)
-    
-    # Convert the string representation to an actual dictionary
-    results_str = match.group(1)
-    results = eval(results_str)
-    
-    # Save to JSON if output path is provided
+def save_results_to_file(results, output_file_path):
+    """
+    Save the extracted results to a file.
+
+    Args:
+        results (float): The extracted celebrity score
+        output_file_path (str): Path to save the results
+    """
     if not os.path.exists(output_file_path):
         os.makedirs(output_file_path)
-    with open(output_file_path + os.sep + "eval.json", "w") as outfile:
-        json.dump(results, outfile, indent=4)
-    print(f"Results saved to {output_file_path}")
+    with open(output_file_path + os.sep + "eval.json", 'w') as outfile:
+        outfile.write(f"Celebrity Score: {results}\n")
+    print(f"Results saved to {output_file_path}")    
 
-    return results
+# log_file_path = "/home/winnieyangwn/lmms-eval/LOGS/entity-visual/Qwen2.5-VL-7B-Instruct/positive-negative-addition-same/last/layer_0/strength_1/mlp-down/epoch_99/mme/eval.log"
 
+# acc = extract_celebrity_result(log_file_path)
 
+# print(acc)
 
-eval_task_name = "mmmu"  # "mme" # "mmmu"
+eval_task_name = "mme"  # "mme" # "mmmu"
 task_name = "entity-visual"
 model_name_ogs = ["Qwen2.5-VL-7B-Instruct"]
 # steer_types = ["negative-addition"]
@@ -71,19 +97,5 @@ for steering_strength in steering_strengths:
                             # save_path= f"/home/winnieyangwn/Output/entity_training/{return_type}/{model_name_og}/{steer_type}/{steer_pos}/layer_{layer}/strength_{steering_strength}/{entity_type}/{known_unknown_split}/{train_module}/epoch_49"
                             log_file= f"/home/winnieyangwn/lmms-eval/LOGS/{task_name}/{model_name_og}/{steer_type}/{steer_pos}/layer_{layer}/strength_{steering_strength}/{train_module}/epoch_{epoch}/{eval_task_name}"
                             output_file = f"/home/winnieyangwn/Output/entity_visual_training/{return_type}/{model_name_og}/{steer_type}/{steer_pos}/layer_{layer}/strength_{steering_strength}/{train_module}/epoch_{epoch}/{eval_task_name}"
-                            extract_results_from_log(log_file, output_file)
-            
-        # if results:
-        #     all_results[layer_num] = results.get('Overall', {}).get('acc', 0)
-
-
-
-# # Example usage
-# model_name = "Qwen2.5-VL-7B-Instruct_mlp-down_negative-addition_last_layer_0_1_49"  # Example model name
-# log_file = f"/home/winnieyangwn/lmms-eval/LOGS/generate_mmmu_entity-visual_{model_name}.log"
-# output_file = f"/home/winnieyangwn/Output/GENERAL/{model_name}/mmmu"
-
-# # Extract and save results
-# results = extract_results_from_log(log_file, output_file)
-
-
+                            results = extract_celebrity_result(log_file)
+                            save_results_to_file(results, output_file)
