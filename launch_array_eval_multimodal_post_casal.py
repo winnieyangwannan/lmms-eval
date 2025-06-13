@@ -38,7 +38,7 @@ model_name_ogs = ["Qwen2.5-VL-7B-Instruct"]
 # steer_types = ["negative-addition"]
 # steer_types = ["positive-negative-addition-opposite"]
 steer_types = ["positive-negative-addition-same"]
-return_type = "prompt"
+# return_type = "prompt"
 train_module = "mlp-down" #block
 steer_poses = ["last"]  # "entity"
 steering_strength =1
@@ -75,7 +75,7 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
                             model_path = f"{task_name}_{model_name_og}_{train_module}_{steer_type}_{steer_pos}_layer_{layer}_{steering_strength}_{epoch}"
                             huggingface_path= "winnieyangwannan/" + model_path
                             job_name  = f"eval"
-                            save_path= f"LOGS/{task_name}/{return_type}/{model_name_og}/{steer_type}/{steer_pos}/layer_{layer}/strength_{steering_strength}/{train_module}/epoch_{epoch}/{eval_task_name}"
+                            save_path= f"LOGS/{task_name}/{model_name_og}/{steer_type}/{steer_pos}/layer_{layer}/strength_{steering_strength}/{train_module}/epoch_{epoch}/{eval_task_name}"
 
                             slurm_cmd = f'''sbatch --account=genai_interns --qos=lowest \
                                 --job-name={job_name} --nodes=1 --gpus-per-node={gpus_per_node} \
