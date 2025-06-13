@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import os
+import json
 def extract_celebrity_result(log_file_path):
     """
     Extract the celebrity aggregate result from the evaluation log file.
@@ -41,10 +42,13 @@ def save_results_to_file(results, output_file_path):
         results (float): The extracted celebrity score
         output_file_path (str): Path to save the results
     """
+
+    results = {"celebrity_score": results}
     if not os.path.exists(output_file_path):
         os.makedirs(output_file_path)
+    
     with open(output_file_path + os.sep + "eval.json", 'w') as outfile:
-        outfile.write(f"Celebrity Score: {results}\n")
+        json.dump(results, outfile, indent=4)
     print(f"Results saved to {output_file_path}")    
 
 # log_file_path = "/home/winnieyangwn/lmms-eval/LOGS/entity-visual/Qwen2.5-VL-7B-Instruct/positive-negative-addition-same/last/layer_0/strength_1/mlp-down/epoch_99/mme/eval.log"
